@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Little Fuzzer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        #controls {
+            margin: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+        #logs {
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: scroll;
+        }
+    </style>
+</head>
+<body>
+    <h1>My Little Fuzzer</h1>
+    <div id="controls">
+        <h3>Select Modules to Fuzz:</h3>
+        <input type="checkbox" id="domFuzzer" checked> DOM Fuzzer<br>
+        <input type="checkbox" id="gpuFuzzer" checked> GPU Fuzzer<br>
+        <input type="checkbox" id="drmFuzzer" checked> DRM Fuzzer<br>
+        <input type="checkbox" id="wasmFuzzer" checked> WASM Fuzzer<br>
+        <br>
+        <button id="startFuzzing">Start Fuzzing</button>
+        <button id="showLogs">Show Logs</button>
+    </div>
+    <div id="gpuCanvas"></div>
+    <div id="mediaElement"></div>
+    <div id="logs"></div>
+    <script type="module" src="loader.js"></script>
+</body>
+</html>
