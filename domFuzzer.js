@@ -4,48 +4,66 @@ class DOMFuzzer {
     constructor(domElements) {
         this.dictionaries = dictionaries;
         this.domElements = domElements;
-        this.maxDepth = 10; // Increased recursive depth
-        this.throttleTime = 10; // Decreased time between operations
+        this.maxDepth = 15; // Increased recursive depth
+        this.throttleTime = 5; // Decreased time between operations
+    }
+
+    async startDOMFuzzing() {
+        for (const el of this.domElements) {
+            if (el) {
+                try {
+                    await this.fuzzDOMElement(el);
+                } catch (error) {
+                    console.error('Error during DOM fuzzing:', error);
+                }
+            }
+        }
     }
 
     async fuzzDOMElement(element, depth = 0) {
         if (depth > this.maxDepth) return;
 
         // Randomly set attributes with mutation-based fuzzing
-        for (let i = 0; i < 30; i++) {
+        for (let i = 0; i < 50; i++) {
             try {
                 const randomAttr = `data-fuzz-${Math.random().toString(36).substring(2, 7)}`;
                 element.setAttribute(randomAttr, this.getRandomFuzzValue("string"));
                 element.setAttribute(randomAttr, this.mutateString(element.getAttribute(randomAttr)));
                 await this.throttle();
-            } catch (error) {}
+            } catch (error) {
+                console.error('Error setting attribute:', error);
+            }
         }
 
         // Randomly modify styles
         const styles = [
             'color', 'backgroundColor', 'border', 'width', 'height', 'fontSize',
             'margin', 'padding', 'opacity', 'display', 'position', 'top', 'left',
-            'transform', 'zIndex'
+            'transform', 'zIndex', 'visibility', 'float', 'clear', 'overflow', 'cursor'
         ];
         for (const style of styles) {
             try {
                 element.style[style] = this.getRandomStyleValue(style);
                 await this.throttle();
-            } catch (error) {}
+            } catch (error) {
+                console.error('Error modifying style:', error);
+            }
         }
 
         // Trigger various events
         const events = [
             'click', 'mouseover', 'mouseout', 'focus', 'blur', 'keydown',
             'keyup', 'change', 'input', 'dblclick', 'contextmenu', 'wheel',
-            'submit', 'reset'
+            'submit', 'reset', 'drag', 'drop', 'dragstart', 'dragend', 'dragover'
         ];
         for (const event of events) {
             try {
                 const evt = new Event(event, { bubbles: true, cancelable: true });
                 element.dispatchEvent(evt);
                 await this.throttle();
-            } catch (error) {}
+            } catch (error) {
+                console.error('Error triggering event:', error);
+            }
         }
 
         // Modify innerHTML and textContent
@@ -54,14 +72,18 @@ class DOMFuzzer {
             await this.throttle();
             element.textContent = this.mutateString(this.getRandomFuzzValue("string"));
             await this.throttle();
-        } catch (error) {}
+        } catch (error) {
+            console.error('Error modifying innerHTML/textContent:', error);
+        }
 
         // Modify value if it's an input element
         if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
             try {
                 element.value = this.mutateString(this.getRandomFuzzValue("string"));
                 await this.throttle();
-            } catch (error) {}
+            } catch (error) {
+                console.error('Error modifying value:', error);
+            }
         }
 
         // Modify attributes
@@ -78,12 +100,14 @@ class DOMFuzzer {
     }
 
     async modifyAttributes(element) {
-        const attributes = ['title', 'alt', 'placeholder', 'src', 'href', 'class', 'id', 'name', 'role', 'aria-label'];
+        const attributes = ['title', 'alt', 'placeholder', 'src', 'href', 'class', 'id', 'name', 'role', 'aria-label', 'data-*'];
         for (const attr of attributes) {
             try {
                 element.setAttribute(attr, this.mutateString(this.getRandomFuzzValue("string")));
                 await this.throttle();
-            } catch (error) {}
+            } catch (error) {
+                console.error('Error modifying attribute:', error);
+            }
         }
     }
 
@@ -93,7 +117,9 @@ class DOMFuzzer {
             try {
                 await this.fuzzDOMElement(nestedElement, depth + 1);
                 await this.throttle();
-            } catch (error) {}
+            } catch (error) {
+                console.error('Error fuzzing nested element:', error);
+            }
         }
     }
 
@@ -102,7 +128,9 @@ class DOMFuzzer {
         transformations.forEach(transformation => {
             try {
                 element.style.transform += `${transformation}(${Math.random() * 360}deg) `;
-            } catch (error) {}
+            } catch (error) {
+                console.error('Error applying transformation:', error);
+            }
         });
     }
 
@@ -112,13 +140,16 @@ class DOMFuzzer {
             () => element.removeChild(element.firstChild),
             () => element.insertBefore(document.createElement('span'), element.firstChild),
             () => element.replaceChild(document.createElement('p'), element.firstChild),
-            () => element.innerHTML = `<div>${element.innerHTML}</div>`
+            () => element.innerHTML = `<div>${element.innerHTML}</div>`,
+            () => element.innerHTML = element.innerHTML.replace(/(<([^>]+)>)/gi, "")
         ];
         structuralOperations.forEach(op => {
             try {
                 op();
                 this.throttle();
-            } catch (error) {}
+            } catch (error) {
+                console.error('Error during structural fuzzing:', error);
+            }
         });
     }
 
@@ -144,6 +175,10 @@ class DOMFuzzer {
                 return ['block', 'inline', 'flex', 'grid', 'none'][Math.floor(Math.random() * 5)];
             case 'position':
                 return ['static', 'relative', 'absolute', 'fixed', 'sticky'][Math.floor(Math.random() * 5)];
+            case 'cursor':
+                return ['pointer', 'default', 'move', 'wait', 'crosshair'][Math.floor(Math.random() * 5)];
+            case 'visibility':
+                return ['visible', 'hidden'][Math.floor(Math.random() * 2)];
             default:
                 return '';
         }
@@ -178,16 +213,6 @@ class DOMFuzzer {
 
     async throttle() {
         return new Promise(resolve => setTimeout(resolve, this.throttleTime));
-    }
-
-    async startDOMFuzzing() {
-        for (const el of this.domElements) {
-            if (el) {
-                try {
-                    await this.fuzzDOMElement(el);
-                } catch (error) {}
-            }
-        }
     }
 }
 
