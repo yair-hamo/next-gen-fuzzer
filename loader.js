@@ -18,7 +18,11 @@ document.getElementById('startFuzzing').addEventListener('click', async () => {
     if (document.getElementById('wasmFuzzer').checked) selectedFuzzers.push('wasmFuzzer');
 
     try {
-        setInterval(() => {try {combinedFuzzer.startFuzzing();} catch (error) {}}, 1);
+        setInterval(() => {
+            try {
+                combinedFuzzer.startFuzzing();
+            } catch (error) {}
+        }, 1);
     } catch (error) {
         console.error('Error in fuzzing process:', error);
     }
