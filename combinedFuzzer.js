@@ -1,7 +1,7 @@
 import { DRMFuzzer } from './drmFuzzer.js';
 import { GPUFuzzer } from './gpuFuzzer.js';
 import { DOMFuzzer } from './domFuzzer.js';
-import { WASMFuzzer } from './wasmFuzzer.js';
+import { JSFuzzer } from './jsFuzzer.js'; // Import the new JSFuzzer
 import { logger } from './operationLogger.js';
 
 class CombinedFuzzer {
@@ -9,7 +9,7 @@ class CombinedFuzzer {
         this.drmFuzzer = new DRMFuzzer();
         this.gpuFuzzer = new GPUFuzzer(domElements);
         this.domFuzzer = new DOMFuzzer(domElements);
-        this.wasmFuzzer = new WASMFuzzer();
+        this.jsFuzzer = new JSFuzzer(domElements); // Initialize the JSFuzzer
     }
 
     async startFuzzing() {
@@ -23,8 +23,8 @@ class CombinedFuzzer {
             logger.log("startFuzzing", "Starting DOM fuzzing");
             await this.domFuzzer.startDOMFuzzing();
 
-            logger.log("startFuzzing", "Starting WASM fuzzing");
-            await this.wasmFuzzer.startFuzzing();
+            logger.log("startFuzzing", "Starting JS fuzzing");
+            await this.jsFuzzer.startFuzzing(); // Start the JSFuzzer
 
         } catch (error) {
             logger.log("error", `Error during fuzzing: ${error.message}`);

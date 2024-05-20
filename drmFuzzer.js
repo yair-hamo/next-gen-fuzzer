@@ -1,5 +1,4 @@
 import { dictionaries, generateRandomByteSequence } from './dictionaries.js';
-import { logger } from './operationLogger.js';
 
 class DRMFuzzer {
     constructor() {
@@ -12,35 +11,35 @@ class DRMFuzzer {
     }
 
     async fuzzMediaEncryptedEvent() {
-        for (let i = 0; i < 20; i++) {
+        for (let i = 0; i < 10; i++) {
             try {
                 const event = new MediaEncryptedEvent("encrypted", {
                     initDataType: this.getRandomFuzzValue("string"),
-                    initData: generateRandomByteSequence(Math.floor(Math.random() * 512)).buffer // Increased byte sequence length
+                    initData: generateRandomByteSequence(Math.floor(Math.random() * 256)).buffer
                 });
-                logger.log("fuzzMediaEncryptedEvent", `Fuzzed MediaEncryptedEvent: ${JSON.stringify(event)}`);
+                // console.log('Fuzzed MediaEncryptedEvent:', event);
             } catch (error) {
-                logger.log("error", `Error fuzzing MediaEncryptedEvent: ${error.message}`);
+                // console.error('Error fuzzing MediaEncryptedEvent:', error);
             }
         }
     }
 
     async fuzzMediaKeyMessageEvent() {
-        for (let i = 0; i < 20; i++) {
+        for (let i = 0; i < 10; i++) {
             try {
                 const event = new MediaKeyMessageEvent("message", {
                     messageType: this.getRandomValidMessageType(),
-                    message: generateRandomByteSequence(Math.floor(Math.random() * 2048)).buffer // Increased byte sequence length
+                    message: generateRandomByteSequence(Math.floor(Math.random() * 1024)).buffer // Increased byte sequence length
                 });
-                logger.log("fuzzMediaKeyMessageEvent", `Fuzzed MediaKeyMessageEvent: ${JSON.stringify(event)}`);
+                // console.log('Fuzzed MediaKeyMessageEvent:', event);
             } catch (error) {
-                logger.log("error", `Error fuzzing MediaKeyMessageEvent: ${error.message}`);
+                // console.error('Error fuzzing MediaKeyMessageEvent:', error);
             }
         }
     }
 
     async fuzzMediaKeys() {
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i < 5; i++) {
             try {
                 navigator.requestMediaKeySystemAccess(this.getRandomValidKeySystem(), [{
                     initDataTypes: [this.getRandomFuzzValue("string")],
@@ -48,41 +47,41 @@ class DRMFuzzer {
                     audioCapabilities: [{ contentType: 'audio/mp4; codecs="mp4a.40.2"' }]
                 }]).then(access => {
                     access.createMediaKeys().then(mediaKeys => {
-                        logger.log("fuzzMediaKeys", `Fuzzed MediaKeys: ${JSON.stringify(mediaKeys)}`);
+                        // console.log('Fuzzed MediaKeys:', mediaKeys);
                         this.fuzzMediaKeySession(mediaKeys);
                     }).catch(error => {
-                        logger.log("error", `Error creating MediaKeys: ${error.message}`);
+                        // console.error('Error creating MediaKeys:', error);
                     });
                 }).catch(error => {
-                    logger.log("error", `Error requesting MediaKeySystemAccess: ${error.message}`);
+                    // console.error('Error requesting MediaKeySystemAccess:', error);
                 });
             } catch (error) {
-                logger.log("error", `Error fuzzing MediaKeys: ${error.message}`);
+                // console.error('Error fuzzing MediaKeys:', error);
             }
         }
     }
 
     async fuzzMediaKeySession(mediaKeys) {
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i < 5; i++) {
             try {
                 const session = mediaKeys.createSession();
                 session.addEventListener('message', (event) => {
-                    logger.log("fuzzMediaKeySession", `Fuzzed MediaKeySession message event: ${JSON.stringify(event)}`);
+                    // console.log('Fuzzed MediaKeySession message event:', event);
                 });
-                session.generateRequest('keyids', generateRandomByteSequence(Math.floor(Math.random() * 1024)).buffer).then(() => {
-                    logger.log("fuzzMediaKeySession", `Generated request for MediaKeySession`);
+                session.generateRequest('keyids', generateRandomByteSequence(Math.floor(Math.random() * 512)).buffer).then(() => {
+                    // console.log('Generated request for MediaKeySession');
                 }).catch(error => {
-                    logger.log("error", `Error generating request for MediaKeySession: ${error.message}`);
+                    // console.error('Error generating request for MediaKeySession:', error);
                 });
-                logger.log("fuzzMediaKeySession", `Fuzzed MediaKeySession: ${JSON.stringify(session)}`);
+                // console.log('Fuzzed MediaKeySession:', session);
             } catch (error) {
-                logger.log("error", `Error fuzzing MediaKeySession: ${error.message}`);
+                // console.error('Error fuzzing MediaKeySession:', error);
             }
         }
     }
 
     async fuzzMediaKeyStatusMap() {
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i < 5; i++) {
             try {
                 navigator.requestMediaKeySystemAccess(this.getRandomValidKeySystem(), [{
                     initDataTypes: [this.getRandomFuzzValue("string")],
@@ -92,21 +91,21 @@ class DRMFuzzer {
                     access.createMediaKeys().then(mediaKeys => {
                         const session = mediaKeys.createSession();
                         const statusMap = session.keyStatuses;
-                        logger.log("fuzzMediaKeyStatusMap", `Fuzzed MediaKeyStatusMap: ${JSON.stringify(statusMap)}`);
+                        // console.log('Fuzzed MediaKeyStatusMap:', statusMap);
                     }).catch(error => {
-                        logger.log("error", `Error creating MediaKeyStatusMap: ${error.message}`);
+                        // console.error('Error creating MediaKeyStatusMap:', error);
                     });
                 }).catch(error => {
-                    logger.log("error", `Error requesting MediaKeySystemAccess: ${error.message}`);
+                    // console.error('Error requesting MediaKeySystemAccess:', error);
                 });
             } catch (error) {
-                logger.log("error", `Error fuzzing MediaKeyStatusMap: ${error.message}`);
+                // console.error('Error fuzzing MediaKeyStatusMap:', error);
             }
         }
     }
 
     async fuzzMediaKeySystemAccess() {
-        for (let i = 0; i < 20; i++) {
+        for (let i = 0; i < 10; i++) {
             try {
                 const keySystem = this.getRandomValidKeySystem();
                 navigator.requestMediaKeySystemAccess(keySystem, [{
@@ -114,12 +113,12 @@ class DRMFuzzer {
                     videoCapabilities: [{ contentType: 'video/mp4; codecs="avc1.42E01E"' }],
                     audioCapabilities: [{ contentType: 'audio/mp4; codecs="mp4a.40.2"' }]
                 }]).then(access => {
-                    logger.log("fuzzMediaKeySystemAccess", `Fuzzed MediaKeySystemAccess: ${JSON.stringify(access)}`);
+                    // console.log('Fuzzed MediaKeySystemAccess:', access);
                 }).catch(error => {
-                    logger.log("error", `Error fuzzing MediaKeySystemAccess: ${error.message}`);
+                    // console.error('Error fuzzing MediaKeySystemAccess:', error);
                 });
             } catch (error) {
-                logger.log("error", `Error fuzzing MediaKeySystemAccess: ${error.message}`);
+                // console.error('Error fuzzing MediaKeySystemAccess:', error);
             }
         }
     }

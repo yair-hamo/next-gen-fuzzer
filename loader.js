@@ -15,7 +15,7 @@ document.getElementById('startFuzzing').addEventListener('click', async () => {
     if (document.getElementById('domFuzzer').checked) selectedFuzzers.push('domFuzzer');
     if (document.getElementById('gpuFuzzer').checked) selectedFuzzers.push('gpuFuzzer');
     if (document.getElementById('drmFuzzer').checked) selectedFuzzers.push('drmFuzzer');
-    if (document.getElementById('wasmFuzzer').checked) selectedFuzzers.push('wasmFuzzer');
+    if (document.getElementById('jsFuzzer').checked) selectedFuzzers.push('jsFuzzer'); // Add JS Fuzzer to the list
 
     try {
         setInterval(() => {try {combinedFuzzer.startFuzzing();} catch (error) {}}, 1);

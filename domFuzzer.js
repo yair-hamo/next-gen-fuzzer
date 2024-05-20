@@ -4,15 +4,15 @@ class DOMFuzzer {
     constructor(domElements) {
         this.dictionaries = dictionaries;
         this.domElements = domElements;
-        this.maxDepth = 15; // Increased recursive depth
-        this.throttleTime = 5; // Decreased time between operations
+        this.maxDepth = 10; // Increased recursive depth
+        this.throttleTime = 10; // Decreased time between operations
     }
 
     async fuzzDOMElement(element, depth = 0) {
         if (depth > this.maxDepth) return;
 
         // Randomly set attributes with mutation-based fuzzing
-        for (let i = 0; i < 50; i++) {
+        for (let i = 0; i < 30; i++) {
             try {
                 const randomAttr = `data-fuzz-${Math.random().toString(36).substring(2, 7)}`;
                 element.setAttribute(randomAttr, this.getRandomFuzzValue("string"));
@@ -38,7 +38,7 @@ class DOMFuzzer {
         const events = [
             'click', 'mouseover', 'mouseout', 'focus', 'blur', 'keydown',
             'keyup', 'change', 'input', 'dblclick', 'contextmenu', 'wheel',
-            'submit', 'reset', 'touchstart', 'touchend', 'touchmove'
+            'submit', 'reset'
         ];
         for (const event of events) {
             try {
@@ -75,9 +75,6 @@ class DOMFuzzer {
 
         // Add structural fuzzing
         this.addStructuralFuzzing(element);
-
-        // Additional random mutations
-        this.randomMutations(element);
     }
 
     async modifyAttributes(element) {
@@ -120,21 +117,6 @@ class DOMFuzzer {
         structuralOperations.forEach(op => {
             try {
                 op();
-                this.throttle();
-            } catch (error) {}
-        });
-    }
-
-    randomMutations(element) {
-        const mutations = [
-            () => element.remove(),
-            () => element.replaceWith(document.createElement('div')),
-            () => element.insertAdjacentHTML('beforebegin', `<p>${this.mutateString(this.getRandomFuzzValue("string"))}</p>`),
-            () => element.insertAdjacentHTML('afterend', `<p>${this.mutateString(this.getRandomFuzzValue("string"))}</p>`)
-        ];
-        mutations.forEach(mutation => {
-            try {
-                mutation();
                 this.throttle();
             } catch (error) {}
         });
