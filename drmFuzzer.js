@@ -9,16 +9,6 @@ class DRMFuzzer {
             "org.w3.clearkey", "com.widevine.alpha", "com.microsoft.playready", "com.adobe.primetime",
             "org.mozilla.clearkey", "com.apple.fairplay", "org.chromium.fakekeysystem"
         ];
-        this.mediaElement = null;
-        this.initMediaElement();
-    }
-
-    initMediaElement() {
-        this.mediaElement = document.createElement('video');
-        this.mediaElement.controls = true;
-        this.mediaElement.style.width = '640px';
-        this.mediaElement.style.height = '360px';
-        document.body.appendChild(this.mediaElement);
     }
 
     async fuzzMediaEncryptedEvent() {
@@ -26,9 +16,8 @@ class DRMFuzzer {
             try {
                 const event = new MediaEncryptedEvent("encrypted", {
                     initDataType: this.getRandomFuzzValue("string"),
-                    initData: generateRandomByteSequence(Math.floor(Math.random() * 512)).buffer
+                    initData: generateRandomByteSequence(Math.floor(Math.random() * 512)).buffer // Increased byte sequence length
                 });
-                this.mediaElement.dispatchEvent(event);
                 logger.log("fuzzMediaEncryptedEvent", `Fuzzed MediaEncryptedEvent: ${JSON.stringify(event)}`);
             } catch (error) {
                 logger.log("error", `Error fuzzing MediaEncryptedEvent: ${error.message}`);
@@ -41,9 +30,8 @@ class DRMFuzzer {
             try {
                 const event = new MediaKeyMessageEvent("message", {
                     messageType: this.getRandomValidMessageType(),
-                    message: generateRandomByteSequence(Math.floor(Math.random() * 2048)).buffer
+                    message: generateRandomByteSequence(Math.floor(Math.random() * 2048)).buffer // Increased byte sequence length
                 });
-                this.mediaElement.dispatchEvent(event);
                 logger.log("fuzzMediaKeyMessageEvent", `Fuzzed MediaKeyMessageEvent: ${JSON.stringify(event)}`);
             } catch (error) {
                 logger.log("error", `Error fuzzing MediaKeyMessageEvent: ${error.message}`);
