@@ -209,7 +209,6 @@ class DOMFuzzer {
 
     async injectDynamicScripts(element) {
         const scripts = [
-            "alert('Fuzzing!');",
             "console.log('Fuzzing test');",
             "document.body.style.backgroundColor = 'red';",
             "document.body.innerHTML += '<div>Injected</div>';",
