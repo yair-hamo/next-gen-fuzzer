@@ -4,66 +4,49 @@ class DOMFuzzer {
     constructor(domElements) {
         this.dictionaries = dictionaries;
         this.domElements = domElements;
-        this.maxDepth = 15; // Increased recursive depth
-        this.throttleTime = 5; // Decreased time between operations
-    }
-
-    async startDOMFuzzing() {
-        for (const el of this.domElements) {
-            if (el) {
-                try {
-                    await this.fuzzDOMElement(el);
-                } catch (error) {
-                    console.error('Error during DOM fuzzing:', error);
-                }
-            }
-        }
+        this.maxDepth = 10;
+        this.throttleTime = 10;
+        this.raceConditionTime = 5; // Time interval for race condition fuzzing
     }
 
     async fuzzDOMElement(element, depth = 0) {
         if (depth > this.maxDepth) return;
 
         // Randomly set attributes with mutation-based fuzzing
-        for (let i = 0; i < 50; i++) {
+        for (let i = 0; i < 30; i++) {
             try {
                 const randomAttr = `data-fuzz-${Math.random().toString(36).substring(2, 7)}`;
                 element.setAttribute(randomAttr, this.getRandomFuzzValue("string"));
                 element.setAttribute(randomAttr, this.mutateString(element.getAttribute(randomAttr)));
                 await this.throttle();
-            } catch (error) {
-                console.error('Error setting attribute:', error);
-            }
+            } catch (error) {}
         }
 
         // Randomly modify styles
         const styles = [
             'color', 'backgroundColor', 'border', 'width', 'height', 'fontSize',
             'margin', 'padding', 'opacity', 'display', 'position', 'top', 'left',
-            'transform', 'zIndex', 'visibility', 'float', 'clear', 'overflow', 'cursor'
+            'transform', 'zIndex'
         ];
         for (const style of styles) {
             try {
                 element.style[style] = this.getRandomStyleValue(style);
                 await this.throttle();
-            } catch (error) {
-                console.error('Error modifying style:', error);
-            }
+            } catch (error) {}
         }
 
         // Trigger various events
         const events = [
             'click', 'mouseover', 'mouseout', 'focus', 'blur', 'keydown',
             'keyup', 'change', 'input', 'dblclick', 'contextmenu', 'wheel',
-            'submit', 'reset', 'drag', 'drop', 'dragstart', 'dragend', 'dragover'
+            'submit', 'reset'
         ];
         for (const event of events) {
             try {
                 const evt = new Event(event, { bubbles: true, cancelable: true });
                 element.dispatchEvent(evt);
                 await this.throttle();
-            } catch (error) {
-                console.error('Error triggering event:', error);
-            }
+            } catch (error) {}
         }
 
         // Modify innerHTML and textContent
@@ -72,18 +55,14 @@ class DOMFuzzer {
             await this.throttle();
             element.textContent = this.mutateString(this.getRandomFuzzValue("string"));
             await this.throttle();
-        } catch (error) {
-            console.error('Error modifying innerHTML/textContent:', error);
-        }
+        } catch (error) {}
 
         // Modify value if it's an input element
         if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
             try {
                 element.value = this.mutateString(this.getRandomFuzzValue("string"));
                 await this.throttle();
-            } catch (error) {
-                console.error('Error modifying value:', error);
-            }
+            } catch (error) {}
         }
 
         // Modify attributes
@@ -97,60 +76,90 @@ class DOMFuzzer {
 
         // Add structural fuzzing
         this.addStructuralFuzzing(element);
+
+        // Introduce race condition fuzzing
+        this.createRaceCondition(element, depth);
+    }
+
+    createRaceCondition(element, depth) {
+        // Start multiple asynchronous operations on the same element
+        const operations = [
+            () => this.modifyAttributes(element),
+            () => this.modifyStyles(element),
+            () => this.triggerEvents(element),
+            () => this.modifyContent(element),
+            () => this.structuralChanges(element)
+        ];
+
+        for (let op of operations) {
+            setInterval(() => {
+                try {
+                    op();
+                } catch (error) {
+                    // Handle errors silently
+                }
+            }, this.raceConditionTime);
+        }
     }
 
     async modifyAttributes(element) {
-        const attributes = ['title', 'alt', 'placeholder', 'src', 'href', 'class', 'id', 'name', 'role', 'aria-label', 'data-*'];
+        const attributes = ['title', 'alt', 'placeholder', 'src', 'href', 'class', 'id', 'name', 'role', 'aria-label'];
         for (const attr of attributes) {
             try {
                 element.setAttribute(attr, this.mutateString(this.getRandomFuzzValue("string")));
                 await this.throttle();
-            } catch (error) {
-                console.error('Error modifying attribute:', error);
-            }
+            } catch (error) {}
         }
     }
 
-    async fuzzNestedElements(element, depth) {
-        const nestedElements = element.querySelectorAll('*');
-        for (const nestedElement of nestedElements) {
+    async modifyStyles(element) {
+        const styles = ['color', 'backgroundColor', 'border', 'width', 'height', 'fontSize', 'margin', 'padding', 'opacity', 'display', 'position', 'top', 'left', 'transform', 'zIndex'];
+        for (const style of styles) {
             try {
-                await this.fuzzDOMElement(nestedElement, depth + 1);
+                element.style[style] = this.getRandomStyleValue(style);
                 await this.throttle();
-            } catch (error) {
-                console.error('Error fuzzing nested element:', error);
-            }
+            } catch (error) {}
         }
     }
 
-    applyTransformations(element) {
-        const transformations = ['rotate', 'scale', 'translate', 'skew', 'translateX', 'translateY', 'scaleX', 'scaleY'];
-        transformations.forEach(transformation => {
+    async triggerEvents(element) {
+        const events = ['click', 'mouseover', 'mouseout', 'focus', 'blur', 'keydown', 'keyup', 'change', 'input', 'dblclick', 'contextmenu', 'wheel', 'submit', 'reset'];
+        for (const event of events) {
             try {
-                element.style.transform += `${transformation}(${Math.random() * 360}deg) `;
-            } catch (error) {
-                console.error('Error applying transformation:', error);
-            }
-        });
+                const evt = new Event(event, { bubbles: true, cancelable: true });
+                element.dispatchEvent(evt);
+                await this.throttle();
+            } catch (error) {}
+        }
     }
 
-    addStructuralFuzzing(element) {
+    async modifyContent(element) {
+        try {
+            element.innerHTML = this.mutateString(this.getRandomFuzzValue("string"));
+            await this.throttle();
+            element.textContent = this.mutateString(this.getRandomFuzzValue("string"));
+            await this.throttle();
+            if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
+                element.value = this.mutateString(this.getRandomFuzzValue("string"));
+                await this.throttle();
+            }
+        } catch (error) {}
+    }
+
+    async structuralChanges(element) {
         const structuralOperations = [
             () => element.appendChild(document.createElement('div')),
             () => element.removeChild(element.firstChild),
             () => element.insertBefore(document.createElement('span'), element.firstChild),
             () => element.replaceChild(document.createElement('p'), element.firstChild),
-            () => element.innerHTML = `<div>${element.innerHTML}</div>`,
-            () => element.innerHTML = element.innerHTML.replace(/(<([^>]+)>)/gi, "")
+            () => element.innerHTML = `<div>${element.innerHTML}</div>`
         ];
-        structuralOperations.forEach(op => {
+        for (const op of structuralOperations) {
             try {
                 op();
-                this.throttle();
-            } catch (error) {
-                console.error('Error during structural fuzzing:', error);
-            }
-        });
+                await this.throttle();
+            } catch (error) {}
+        }
     }
 
     getRandomStyleValue(style) {
@@ -175,10 +184,6 @@ class DOMFuzzer {
                 return ['block', 'inline', 'flex', 'grid', 'none'][Math.floor(Math.random() * 5)];
             case 'position':
                 return ['static', 'relative', 'absolute', 'fixed', 'sticky'][Math.floor(Math.random() * 5)];
-            case 'cursor':
-                return ['pointer', 'default', 'move', 'wait', 'crosshair'][Math.floor(Math.random() * 5)];
-            case 'visibility':
-                return ['visible', 'hidden'][Math.floor(Math.random() * 2)];
             default:
                 return '';
         }
@@ -213,6 +218,16 @@ class DOMFuzzer {
 
     async throttle() {
         return new Promise(resolve => setTimeout(resolve, this.throttleTime));
+    }
+
+    async startDOMFuzzing() {
+        for (const el of this.domElements) {
+            if (el) {
+                try {
+                    await this.fuzzDOMElement(el);
+                } catch (error) {}
+            }
+        }
     }
 }
 
