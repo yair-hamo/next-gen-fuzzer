@@ -4,16 +4,16 @@ class DOMFuzzer {
     constructor(domElements) {
         this.dictionaries = dictionaries;
         this.domElements = domElements;
-        this.maxDepth = 10;
-        this.throttleTime = 10;
-        this.raceConditionTime = 5; // Time interval for race condition fuzzing
+        this.maxDepth = 25; // Further increased depth for exhaustive fuzzing
+        this.throttleTime = 0.5; // Reduced throttle time for even faster fuzzing
+        this.raceConditionTime = 0.5; // More aggressive race condition interval
     }
 
     async fuzzDOMElement(element, depth = 0) {
         if (depth > this.maxDepth) return;
 
         // Randomly set attributes with mutation-based fuzzing
-        for (let i = 0; i < 30; i++) {
+        for (let i = 0; i < 150; i++) {
             try {
                 const randomAttr = `data-fuzz-${Math.random().toString(36).substring(2, 7)}`;
                 element.setAttribute(randomAttr, this.getRandomFuzzValue("string"));
@@ -26,7 +26,8 @@ class DOMFuzzer {
         const styles = [
             'color', 'backgroundColor', 'border', 'width', 'height', 'fontSize',
             'margin', 'padding', 'opacity', 'display', 'position', 'top', 'left',
-            'transform', 'zIndex'
+            'transform', 'zIndex', 'flex', 'grid', 'boxShadow', 'borderRadius', 'clipPath',
+            'filter', 'backdropFilter', 'animation', 'transition', 'cursor', 'outline', 'visibility'
         ];
         for (const style of styles) {
             try {
@@ -39,7 +40,9 @@ class DOMFuzzer {
         const events = [
             'click', 'mouseover', 'mouseout', 'focus', 'blur', 'keydown',
             'keyup', 'change', 'input', 'dblclick', 'contextmenu', 'wheel',
-            'submit', 'reset'
+            'submit', 'reset', 'dragstart', 'dragover', 'drop', 'copy', 'cut', 'paste',
+            'animationstart', 'animationiteration', 'animationend', 'touchstart', 'touchend', 'touchmove',
+            'pointerdown', 'pointerup', 'pointermove', 'pointerover', 'pointerout', 'pointerenter', 'pointerleave'
         ];
         for (const event of events) {
             try {
@@ -65,17 +68,20 @@ class DOMFuzzer {
             } catch (error) {}
         }
 
+        // Inject dynamic scripts
+        await this.injectDynamicScripts(element);
+
         // Modify attributes
-        this.modifyAttributes(element);
+        await this.modifyAttributes(element);
 
         // Handle nested elements
-        this.fuzzNestedElements(element, depth);
+        await this.fuzzNestedElements(element, depth);
 
         // Apply transformations
-        this.applyTransformations(element);
+        await this.applyTransformations(element);
 
         // Add structural fuzzing
-        this.addStructuralFuzzing(element);
+        await this.addStructuralFuzzing(element);
 
         // Introduce race condition fuzzing
         this.createRaceCondition(element, depth);
@@ -88,7 +94,8 @@ class DOMFuzzer {
             () => this.modifyStyles(element),
             () => this.triggerEvents(element),
             () => this.modifyContent(element),
-            () => this.structuralChanges(element)
+            () => this.structuralChanges(element),
+            () => this.applyTransformations(element) // Added transformations to race conditions
         ];
 
         for (let op of operations) {
@@ -103,7 +110,7 @@ class DOMFuzzer {
     }
 
     async modifyAttributes(element) {
-        const attributes = ['title', 'alt', 'placeholder', 'src', 'href', 'class', 'id', 'name', 'role', 'aria-label'];
+        const attributes = ['title', 'alt', 'placeholder', 'src', 'href', 'class', 'id', 'name', 'role', 'aria-label', 'data-random', 'data-test', 'aria-hidden', 'aria-live', 'tabindex', 'contenteditable', 'draggable', 'spellcheck'];
         for (const attr of attributes) {
             try {
                 element.setAttribute(attr, this.mutateString(this.getRandomFuzzValue("string")));
@@ -113,7 +120,7 @@ class DOMFuzzer {
     }
 
     async modifyStyles(element) {
-        const styles = ['color', 'backgroundColor', 'border', 'width', 'height', 'fontSize', 'margin', 'padding', 'opacity', 'display', 'position', 'top', 'left', 'transform', 'zIndex'];
+        const styles = ['color', 'backgroundColor', 'border', 'width', 'height', 'fontSize', 'margin', 'padding', 'opacity', 'display', 'position', 'top', 'left', 'transform', 'zIndex', 'flex', 'grid', 'boxShadow', 'borderRadius', 'clipPath', 'filter', 'backdropFilter', 'animation', 'transition', 'cursor', 'outline', 'visibility'];
         for (const style of styles) {
             try {
                 element.style[style] = this.getRandomStyleValue(style);
@@ -123,7 +130,7 @@ class DOMFuzzer {
     }
 
     async triggerEvents(element) {
-        const events = ['click', 'mouseover', 'mouseout', 'focus', 'blur', 'keydown', 'keyup', 'change', 'input', 'dblclick', 'contextmenu', 'wheel', 'submit', 'reset'];
+        const events = ['click', 'mouseover', 'mouseout', 'focus', 'blur', 'keydown', 'keyup', 'change', 'input', 'dblclick', 'contextmenu', 'wheel', 'submit', 'reset', 'dragstart', 'dragover', 'drop', 'copy', 'cut', 'paste', 'animationstart', 'animationiteration', 'animationend', 'touchstart', 'touchend', 'touchmove', 'pointerdown', 'pointerup', 'pointermove', 'pointerover', 'pointerout', 'pointerenter', 'pointerleave'];
         for (const event of events) {
             try {
                 const evt = new Event(event, { bubbles: true, cancelable: true });
@@ -153,8 +160,17 @@ class DOMFuzzer {
             () => element.insertBefore(document.createElement('span'), element.firstChild),
             () => element.replaceChild(document.createElement('p'), element.firstChild),
             () => element.innerHTML = `<div>${element.innerHTML}</div>`,
-            () => element.outerHTML = `<section>${element.outerHTML}</section>`,  // New structural change
-            () => element.innerHTML = `<img src="https://via.placeholder.com/150" />`  // Insert image
+            () => element.outerHTML = `<section>${element.outerHTML}</section>`,
+            () => element.innerHTML = `<img src="https://via.placeholder.com/150" />`,
+            () => element.innerHTML += `<div>${this.mutateString(this.getRandomFuzzValue("string"))}</div>`,
+            () => element.insertAdjacentHTML('beforebegin', `<div>${this.mutateString(this.getRandomFuzzValue("string"))}</div>`), // Insert before element
+            () => element.insertAdjacentHTML('afterend', `<div>${this.mutateString(this.getRandomFuzzValue("string"))}</div>`), // Insert after element
+            () => element.appendChild(document.createElement('script')).textContent = this.getRandomFuzzValue("script"), // Inject scripts
+            () => {
+                const iframe = document.createElement('iframe');
+                iframe.srcdoc = this.getRandomFuzzValue("html");
+                element.appendChild(iframe); // Inject iframes
+            }
         ];
         for (const op of structuralOperations) {
             try {
@@ -177,7 +193,11 @@ class DOMFuzzer {
             () => element.style.transform = `scale(${Math.random() + 0.5})`,
             () => element.style.transform = `translate(${Math.floor(Math.random() * 100)}px, ${Math.floor(Math.random() * 100)}px)`,
             () => element.style.transform = `skew(${Math.floor(Math.random() * 45)}deg, ${Math.floor(Math.random() * 45)}deg)`,
-            () => element.style.transform = `rotateX(${Math.floor(Math.random() * 360)}deg) rotateY(${Math.floor(Math.random() * 360)}deg)`
+            () => element.style.transform = `rotateX(${Math.floor(Math.random() * 360)}deg) rotateY(${Math.floor(Math.random() * 360)}deg)`,
+            () => element.style.transform = `perspective(${Math.floor(Math.random() * 1000)}px) rotate3d(${Math.random()}, ${Math.random()}, ${Math.random()}, ${Math.floor(Math.random() * 360)}deg)`,
+            () => element.style.transform = `scaleX(${Math.random() * 2}) scaleY(${Math.random() * 2})`,
+            () => element.style.transform = `matrix(${Math.random()}, ${Math.random()}, ${Math.random()}, ${Math.random()}, ${Math.random() * 100}, ${Math.random() * 100})`,
+            () => element.style.transform = `translateZ(${Math.random() * 200}px)` // New transformation
         ];
         for (const transform of transformations) {
             try {
@@ -185,6 +205,24 @@ class DOMFuzzer {
                 await this.throttle();
             } catch (error) {}
         }
+    }
+
+    async injectDynamicScripts(element) {
+        const scripts = [
+            "alert('Fuzzing!');",
+            "console.log('Fuzzing test');",
+            "document.body.style.backgroundColor = 'red';",
+            "document.body.innerHTML += '<div>Injected</div>';",
+            "document.title = 'Fuzzing Test';",
+            "setTimeout(() => { document.body.innerHTML = ''; }, 1000);",
+            "document.body.contentEditable = 'true';",
+            "document.designMode = 'on';",
+            "navigator.clipboard.writeText('Fuzzing!');"
+        ];
+        const script = document.createElement('script');
+        script.textContent = scripts[Math.floor(Math.random() * scripts.length)];
+        document.body.appendChild(script);
+        await this.throttle();
     }
 
     getRandomStyleValue(style) {
@@ -209,6 +247,30 @@ class DOMFuzzer {
                 return ['block', 'inline', 'flex', 'grid', 'none'][Math.floor(Math.random() * 5)];
             case 'position':
                 return ['static', 'relative', 'absolute', 'fixed', 'sticky'][Math.floor(Math.random() * 5)];
+            case 'flex':
+                return `${Math.random() * 10}`;
+            case 'grid':
+                return `repeat(${Math.floor(Math.random() * 10)}, ${Math.floor(Math.random() * 50)}px)`;
+            case 'boxShadow':
+                return `${Math.floor(Math.random() * 10)}px ${Math.floor(Math.random() * 10)}px ${Math.floor(Math.random() * 20)}px ${this.getRandomColor()}`;
+            case 'borderRadius':
+                return `${Math.floor(Math.random() * 50)}%`;
+            case 'clipPath':
+                return `circle(${Math.floor(Math.random() * 50)}%)`;
+            case 'filter':
+                return `blur(${Math.floor(Math.random() * 10)}px)`;
+            case 'backdropFilter':
+                return `contrast(${Math.random() * 200}%)`;
+            case 'animation':
+                return `spin ${Math.floor(Math.random() * 5)}s infinite linear`;
+            case 'transition':
+                return `all ${Math.floor(Math.random() * 3)}s ease`;
+            case 'cursor':
+                return ['pointer', 'crosshair', 'text', 'wait', 'help'][Math.floor(Math.random() * 5)];
+            case 'outline':
+                return `${Math.floor(Math.random() * 5)}px solid ${this.getRandomColor()}`;
+            case 'visibility':
+                return ['visible', 'hidden', 'collapse'][Math.floor(Math.random() * 3)];
             default:
                 return '';
         }
@@ -237,9 +299,48 @@ class DOMFuzzer {
             s => s.replace(/\s/g, ''), // Remove spaces
             s => s.replace(/[^a-zA-Z0-9]/g, ''), // Remove special characters
             s => `${s}${Math.random().toString(36).substring(2, 7)}`, // Append random string
-            s => s.split('').map(c => String.fromCharCode(c.charCodeAt(0) + 1)).join('') // Shift characters
+            s => s.split('').map(c => String.fromCharCode(c.charCodeAt(0) + 1)).join(''), // Shift characters
+            s => this.shuffleString(s), // Shuffle characters
+            s => this.randomCase(s), // Random case
+            s => this.invertCase(s), // Invert case
+            s => this.randomInsert(s), // Randomly insert characters
+            s => this.randomDelete(s), // Randomly delete characters
+            s => this.leetSpeak(s) // Convert to leet speak
         ];
         return mutations[Math.floor(Math.random() * mutations.length)](str);
+    }
+
+    shuffleString(str) {
+        const arr = str.split('');
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr.join('');
+    }
+
+    randomCase(str) {
+        return str.split('').map(c => (Math.random() > 0.5 ? c.toUpperCase() : c.toLowerCase())).join('');
+    }
+
+    invertCase(str) {
+        return str.split('').map(c => (c === c.toUpperCase() ? c.toLowerCase() : c.toUpperCase())).join('');
+    }
+
+    randomInsert(str) {
+        const pos = Math.floor(Math.random() * str.length);
+        const char = String.fromCharCode(Math.floor(Math.random() * 94) + 33);
+        return str.slice(0, pos) + char + str.slice(pos);
+    }
+
+    randomDelete(str) {
+        const pos = Math.floor(Math.random() * str.length);
+        return str.slice(0, pos) + str.slice(pos + 1);
+    }
+
+    leetSpeak(str) {
+        const leetDict = { 'a': '4', 'e': '3', 'i': '1', 'o': '0', 's': '5', 't': '7' };
+        return str.split('').map(c => leetDict[c.toLowerCase()] || c).join('');
     }
 
     async throttle() {
